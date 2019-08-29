@@ -11,6 +11,8 @@ from baseline.generate_content import AbbrCorpus, build_index_of_abbrs, Doc
 from baseline.dataset_helper import DataSetPaths, compare_dataset_instances
 from baseline.dataset_helper import InstancePred, evaluation, AbbrInstanceCollector
 from preprocess.file_helper import txt_reader, txt_writer, pickle_writer, pickle_reader
+from datetime import datetime
+from baseline.word_embedding import generate_train_files
 
 
 ###############################################################
@@ -25,6 +27,7 @@ def abbr_job(abbr, abbr_index, abbr_idx_mapper, docs, content_dir, window_size):
     for global_instance_idx, doc_id, pos, content_pos, content, label in corpus_content:
         content.insert(content_pos, abbr)
         content = " ".join(content)
+        # print(content)
         dataset.append("__label__{} {}".format(label, content))
 
     # save vector to pickle file
@@ -201,6 +204,7 @@ def predict_fasttext_classifier(train_processed_path, test_processed_path, use_p
         # else:
         eval_abbr_instance_list = txt_reader(test_processed_path + '/fasttext/dataset/%d.txt' % test_abbr_idx)
         abbr_instance_idx = 0
+        # print(abbr)
         for doc_id, pos_list in test_abbr_index[abbr].items():
             for global_instance_idx, pos, label in pos_list:
                 if label not in label_set:
@@ -209,16 +213,33 @@ def predict_fasttext_classifier(train_processed_path, test_processed_path, use_p
                     # get instance
                     tokens = eval_abbr_instance_list[abbr_instance_idx].split()
                     label_in_txt = tokens[0].lstrip("__label__")
+                    # print(label, label_in_txt)
                     assert label == label_in_txt
                     context = " ".join(tokens[1:])
                     instance_collection.append(InstancePred(
                         index=global_instance_idx, abbr=abbr,
                         sense_pred=model.predict(context)[0][0].lstrip("__label__")))
+
+                    # k = 10
+                    # sense = model.predict(context, k=k)
+                    # sense_list = []
+                    # for i in range(k):
+                    #     tup = [sense[0][i].lstrip("__label__"), sense[1][i]]
+                    #     sense_list.append(tup)
+                    # print(global_instance_idx)
+                    # print(sense_list)
+                    # print()
                 abbr_instance_idx += 1
     # sort collection list based on global instance idx
     instance_collection = sorted(instance_collection, key=lambda x: x.index)
     return instance_collection
 
+
+def train_single_model(txt_path, train_data_path, use_pretrain=False, use_softmax=False):
+    generate_train_files(txt_path, train_data_path)
+    generate_train_data(train_data_path)
+    model = train_fasttext_classifier(train_data_path, use_pretrain=use_pretrain, use_softmax=use_softmax)
+    return model
 
 ###############################################################
 # Multiple fastText models (one model per abbr)
@@ -241,6 +262,7 @@ def train_fasttext_classifier_multi_model(train_processed_path, use_pretrain=Fal
     abbr_label_set = {}
     # Load training data & train model
     for abbr, abbr_idx in tqdm(abbr_idx_mapper['abbr2idx'].items()):
+        # print('abbr:', abbr_idx)
         input_file = train_path + '/dataset/%d.txt' % abbr_idx
         model_file = model_path + '/%d.bin' % abbr_idx
         # load label list
@@ -327,11 +349,31 @@ def predict_fasttext_classifier_multi_model(train_processed_path, test_processed
     return instance_collection
 
 
-def train_evaluate_fasttext_on_datasets(dataset_paths, only_test=True, use_single_model=True, use_pretrain=False, use_softmax=False):
+def train_evaluate_fasttext_on_datasets(dataset_paths, only_test=True, use_single_model=True,
+                                        use_pretrain=False, use_softmax=False):
+    ##########
     # train
+    ##########
     # train_dataset = ("MIMIC Train", dataset_paths.mimic_train_folder)
     # train_dataset = ("UPMC AB Train", dataset_paths.upmc_ab_train_folder)
-    train_dataset = ("UPMC AD Train", dataset_paths.upmc_ad_train_folder)
+    # train_dataset = ("UPMC AD Train", dataset_paths.upmc_ad_train_folder)
+    # train_dataset = ("UPMC AG Train", dataset_paths.upmc_ag_train_folder)
+    # train_dataset = ("UPMC AL Train", dataset_paths.upmc_al_train_folder)
+    # train_dataset = ("UPMC AO Train", dataset_paths.upmc_ao_train_folder)
+    # train_dataset = ('PE SELF train', dataset_paths.pe_self_train_folder)
+    # train_dataset = ('MIMIC NEW train', dataset_paths.mimic_new_train_folder)
+    # train_dataset = ('MIMIC CLUSTER k20 s5 train', dataset_paths.mimic_clus_k20_s5_train_folder)
+    # train_dataset = ('MIMIC CLUSTER k20 s10 train', dataset_paths.mimic_clus_k20_s10_train_folder)
+    # train_dataset = ('MIMIC CLUSTER k20 s15 train', dataset_paths.mimic_clus_k20_s15_train_folder)
+    # train_dataset = ('MIMIC CLUSTER k30 s5 train', dataset_paths.mimic_clus_k30_s5_train_folder)
+    # train_dataset = ('MIMIC CLUSTER k30 s10 train', dataset_paths.mimic_clus_k30_s10_train_folder)
+    # train_dataset = ('MIMIC CLUSTER k30 s15 train', dataset_paths.mimic_clus_k30_s15_train_folder)
+    # train_dataset = ('MIMIC CLUSTER k40 s5 train', dataset_paths.mimic_clus_k40_s5_train_folder)
+    # train_dataset = ('MIMIC CLUSTER k40 s10 train', dataset_paths.mimic_clus_k40_s10_train_folder)
+    # train_dataset = ('MIMIC CLUSTER k40 s15 train', dataset_paths.mimic_clus_k40_s15_train_folder)
+    # train_dataset = ('MIMIC CLUSTER ALL train', dataset_paths.mimic_clus_all_train_folder)
+    # train_dataset = ('MIMIC CLUSTER k2 s10 train', dataset_paths.mimic_clus_k2_s10_train_folder)
+    train_dataset = ('MIMIC CLUSTER k15 s10 train', dataset_paths.mimic_clus_k15_s10_train_folder)
 
     if not only_test:
         print("Train fastText on {}:".format(train_dataset[0]))
@@ -339,28 +381,74 @@ def train_evaluate_fasttext_on_datasets(dataset_paths, only_test=True, use_singl
             train_fasttext_classifier(train_dataset[1], use_pretrain=use_pretrain, use_softmax=use_softmax)
         else:
             train_fasttext_classifier_multi_model(train_dataset[1], use_pretrain=use_pretrain, use_softmax=use_softmax)
+    ##########
     # test
+    ##########
     datasets = [
         # ("MIMIC Test", dataset_paths.mimic_eval_txt, dataset_paths.mimic_test_folder),
         # ("ShARe/CLEF", dataset_paths.share_txt, dataset_paths.share_test_folder),
         # ("MSH", dataset_paths.msh_txt, dataset_paths.msh_test_folder),
         # ("UPMC example", dataset_paths.upmc_example_txt, dataset_paths.upmc_example_folder),
         # ("UPMC AB test", dataset_paths.upmc_ab_test_txt, dataset_paths.upmc_ab_test_folder),
-        ("UPMC AD test", dataset_paths.upmc_ad_test_txt, dataset_paths.upmc_ad_test_folder),
+        # ("UPMC AD test", dataset_paths.upmc_ad_test_txt, dataset_paths.upmc_ad_test_folder),
+        # ("UPMC AG test", dataset_paths.upmc_ag_test_txt, dataset_paths.upmc_ag_test_folder),
+        # ("UPMC AL test", dataset_paths.upmc_al_test_txt, dataset_paths.upmc_al_test_folder),
+        # ("UPMC AO test", dataset_paths.upmc_ao_test_txt, dataset_paths.upmc_ao_test_folder),
+
+        # ("PE test", dataset_paths.pe_test_txt, dataset_paths.pe_test_folder),
+        # ("PE SELF test", dataset_paths.pe_self_test_txt, dataset_paths.pe_self_test_folder)
+        # ("PE 50000 No M test", dataset_paths.pe_50000_nm_test_txt, dataset_paths.pe_50000_nm_test_folder),
+        # ("IPDC 50000 test", dataset_paths.ipdc_50000_test_txt, dataset_paths.ipdc_50000_test_folder),
+
+        # ('Pipeline test', dataset_paths.pipeline_test_txt, dataset_paths.pipeline_test_folder)
+
+        # ('MIMIC new test', dataset_paths.mimic_new_test_txt, dataset_paths.mimic_new_test_folder),
+
+        # ('MIMIC CLUSTER k20 s5 test', dataset_paths.mimic_clus_k20_s5_test_txt,
+        #  dataset_paths.mimic_clus_k20_s5_test_folder),
+        # ('MIMIC CLUSTER k20 s10 test', dataset_paths.mimic_clus_k20_s10_test_txt,
+        #  dataset_paths.mimic_clus_k20_s10_test_folder),
+        # ('MIMIC CLUSTER k20 s15 test', dataset_paths.mimic_clus_k20_s15_test_txt,
+        #  dataset_paths.mimic_clus_k20_s15_test_folder),
+        # ('MIMIC CLUSTER k30 s5 test', dataset_paths.mimic_clus_k30_s5_test_txt,
+        #   dataset_paths.mimic_clus_k30_s5_test_folder),
+        # ('MIMIC CLUSTER k30 s10 test', dataset_paths.mimic_clus_k30_s10_test_txt,
+        #  dataset_paths.mimic_clus_k30_s10_test_folder),
+        # ('MIMIC CLUSTER k30 s15 test', dataset_paths.mimic_clus_k30_s15_test_txt,
+        #  dataset_paths.mimic_clus_k30_s15_test_folder),
+        # ('MIMIC CLUSTER k40 s5 test', dataset_paths.mimic_clus_k40_s5_test_txt,
+        #   dataset_paths.mimic_clus_k40_s5_test_folder),
+        # ('MIMIC CLUSTER k40 s10 test', dataset_paths.mimic_clus_k40_s10_test_txt,
+        #  dataset_paths.mimic_clus_k40_s10_test_folder),
+        # ('MIMIC CLUSTER k40 s15 test', dataset_paths.mimic_clus_k40_s15_test_txt,
+        #  dataset_paths.mimic_clus_k40_s15_test_folder),
+        # ('MIMIC CLUSTER ALL test', dataset_paths.mimic_clus_all_test_txt,
+        #  dataset_paths.mimic_clus_all_test_folder),
+        # ('MIMIC CLUSTER k2 s10 test', dataset_paths.mimic_clus_k2_s10_test_txt,
+        #  dataset_paths.mimic_clus_k2_s10_test_folder),
+        ('MIMIC CLUSTER k15 s10 test', dataset_paths.mimic_clus_k15_s10_test_txt,
+         dataset_paths.mimic_clus_k15_s10_test_folder),
     ]
     for name, txt_path, test_folder in datasets:
         print("Test fastText on {}: ".format(name))
         test_collector = AbbrInstanceCollector(txt_path)
         test_collection_true = test_collector.generate_instance_collection()
         if use_single_model:
-            test_collection_pred = predict_fasttext_classifier(train_dataset[1], test_folder, use_pretrain=use_pretrain, use_softmax=use_softmax)
+            test_collection_pred = predict_fasttext_classifier(train_dataset[1],
+                                                               test_folder,
+                                                               use_pretrain=use_pretrain,
+                                                               use_softmax=use_softmax)
         else:
-            test_collection_pred = predict_fasttext_classifier_multi_model(train_dataset[1], test_folder, use_pretrain=use_pretrain)
+            test_collection_pred = predict_fasttext_classifier_multi_model(train_dataset[1],
+                                                                           test_folder,
+                                                                           use_pretrain=use_pretrain)
         print(evaluation(test_collection_true, test_collection_pred))
 
 
 if __name__ == '__main__':
-    dataset_paths = DataSetPaths('luoz3_x1')
+    # dataset_paths = DataSetPaths('luoz3_x1')
+    dataset_paths = DataSetPaths('xil222')
+    start_time = datetime.now()
 
     #####################################
     # generate train & test data
@@ -369,6 +457,22 @@ if __name__ == '__main__':
     # generate_train_data(dataset_paths.mimic_train_folder)
     # generate_train_data(dataset_paths.upmc_ab_train_folder)
     # generate_train_data(dataset_paths.upmc_ad_train_folder)
+    # generate_train_data(dataset_paths.upmc_ag_train_folder)
+    # generate_train_data(dataset_paths.upmc_al_train_folder)
+    # generate_train_data(dataset_paths.upmc_ao_train_folder)
+    # generate_train_data(dataset_paths.pe_self_train_folder)
+    # generate_train_data(dataset_paths.mimic_new_train_folder)
+    # generate_train_data(dataset_paths.mimic_clus_k20_s5_train_folder)
+    # generate_train_data(dataset_paths.mimic_clus_k20_s10_train_folder)
+    # generate_train_data(dataset_paths.mimic_clus_k20_s15_train_folder)
+    # generate_train_data(dataset_paths.mimic_clus_k30_s5_train_folder)
+    # generate_train_data(dataset_paths.mimic_clus_k30_s10_train_folder)
+    # generate_train_data(dataset_paths.mimic_clus_k30_s15_train_folder)
+    # generate_train_data(dataset_paths.mimic_clus_k40_s5_train_folder)
+    # generate_train_data(dataset_paths.mimic_clus_k40_s10_train_folder)
+    # generate_train_data(dataset_paths.mimic_clus_k40_s15_train_folder)
+    # generate_train_data(dataset_paths.mimic_clus_all_train_folder)
+    generate_train_data(dataset_paths.mimic_clus_k15_s10_train_folder)
 
     # generate_test_data(dataset_paths.mimic_test_folder)
     # generate_test_data(dataset_paths.share_test_folder)
@@ -376,6 +480,25 @@ if __name__ == '__main__':
     # generate_test_data(dataset_paths.msh_test_folder)
     # generate_test_data(dataset_paths.upmc_ab_test_folder)
     # generate_test_data(dataset_paths.upmc_ad_test_folder)
+    # generate_test_data(dataset_paths.upmc_ag_test_folder)
+    # generate_test_data(dataset_paths.upmc_al_test_folder)
+    # generate_test_data(dataset_paths.upmc_ao_test_folder)
+    # generate_test_data(dataset_paths.pe_50000_nm_test_folder)
+    # generate_test_data(dataset_paths.ipdc_50000_test_folder)
+    # generate_test_data(dataset_paths.pe_self_test_folder)
+    # generate_test_data(dataset_paths.pipeline_test_folder)
+    # generate_test_data(dataset_paths.mimic_new_test_folder)
+    # generate_test_data(dataset_paths.mimic_clus_k20_s5_test_folder)
+    # generate_test_data(dataset_paths.mimic_clus_k20_s10_test_folder)
+    # generate_test_data(dataset_paths.mimic_clus_k20_s15_test_folder)
+    # generate_test_data(dataset_paths.mimic_clus_k30_s5_test_folder)
+    # generate_test_data(dataset_paths.mimic_clus_k30_s10_test_folder)
+    # generate_test_data(dataset_paths.mimic_clus_k30_s15_test_folder)
+    # generate_test_data(dataset_paths.mimic_clus_k40_s5_test_folder)
+    # generate_test_data(dataset_paths.mimic_clus_k40_s10_test_folder)
+    # generate_test_data(dataset_paths.mimic_clus_k40_s15_test_folder)
+    # generate_test_data(dataset_paths.mimic_clus_all_test_folder)
+    generate_test_data(dataset_paths.mimic_clus_k15_s10_test_folder)
 
     # generate_whole_dataset(dataset_paths.mimic_train_folder, shuffle=True)
     # generate_whole_dataset(dataset_paths.mimic_test_folder)
@@ -385,6 +508,26 @@ if __name__ == '__main__':
     # generate_whole_dataset(dataset_paths.upmc_ab_train_folder, shuffle=True)
     # generate_whole_dataset(dataset_paths.upmc_ab_test_folder)
     # generate_whole_dataset(dataset_paths.upmc_ad_train_folder, shuffle=True)
+    # generate_whole_dataset(dataset_paths.upmc_ag_train_folder, shuffle=True)
+    # generate_whole_dataset(dataset_paths.upmc_al_train_folder, shuffle=True)
+    # generate_whole_dataset(dataset_paths.upmc_ao_train_folder, shuffle=True)
+    # generate_whole_dataset(dataset_paths.pe_self_train_folder, shuffle=True)
+    # generate_whole_dataset(dataset_paths.mimic_new_train_folder, shuffle=True)
+    # generate_whole_dataset(dataset_paths.mimic_clus_k20_s5_train_folder, shuffle=True)
+    # generate_whole_dataset(dataset_paths.mimic_clus_k20_s10_train_folder, shuffle=True)
+    # generate_whole_dataset(dataset_paths.mimic_clus_k20_s15_train_folder, shuffle=True)
+    # generate_whole_dataset(dataset_paths.mimic_clus_k30_s5_train_folder, shuffle=True)
+    # generate_whole_dataset(dataset_paths.mimic_clus_k30_s10_train_folder, shuffle=True)
+    # generate_whole_dataset(dataset_paths.mimic_clus_k30_s15_train_folder, shuffle=True)
+    # generate_whole_dataset(dataset_paths.mimic_clus_k40_s5_train_folder, shuffle=True)
+    # generate_whole_dataset(dataset_paths.mimic_clus_k40_s10_train_folder, shuffle=True)
+    # generate_whole_dataset(dataset_paths.mimic_clus_k40_s15_train_folder, shuffle=True)
+    # generate_whole_dataset(dataset_paths.mimic_clus_all_train_folder, shuffle=True)
+    generate_whole_dataset(dataset_paths.mimic_clus_k15_s10_train_folder, shuffle=True)
+
+    runtime = datetime.now() - start_time
+    print('Generation finished in', runtime, '\n')
+    start_time = datetime.now()
 
     #####################################
     # train word embedding
@@ -396,9 +539,17 @@ if __name__ == '__main__':
     #     dataset_paths.mimic_train_folder+'/fasttext.vec'
     # )
     # train_skipgram(dataset_paths.upmc_all_no_mark_folder)
+
+    # train_skipgram(dataset_paths.upmc_ao_train_folder)
     # comvert_bin_to_vec(
-    #     dataset_paths.upmc_all_no_mark_folder+'/fasttext.bin',
-    #     dataset_paths.upmc_ab_train_folder+'/fasttext.vec'
+    #     dataset_paths.upmc_ao_train_folder + '/fasttext.bin',
+    #     dataset_paths.upmc_ao_train_folder + '/fasttext.vec'
+    # )
+
+    # train_skipgram(dataset_paths.mimic_new_train_folder)
+    # comvert_bin_to_vec(
+    #     dataset_paths.mimic_new_train_folder + '/fasttext.bin',
+    #     dataset_paths.mimic_new_train_folder + '/fasttext.vec'
     # )
 
     #####################################
@@ -409,18 +560,21 @@ if __name__ == '__main__':
         dataset_paths,
         only_test=False,
         use_single_model=True,
-        use_pretrain=True,
-        use_softmax=True
+        use_pretrain=False,
+        use_softmax=False
     )
 
     #####################################
     # train & test (multiple model)
     #####################################
 
-    train_evaluate_fasttext_on_datasets(
-        dataset_paths,
-        only_test=False,
-        use_single_model=False,
-        use_pretrain=True,
-        use_softmax=True
-    )
+    # train_evaluate_fasttext_on_datasets(
+    #     dataset_paths,
+    #     only_test=False,
+    #     use_single_model=False,
+    #     use_pretrain=False,
+    #     use_softmax=False
+    # )
+
+    runtime = datetime.now() - start_time
+    print('Finished in', runtime)

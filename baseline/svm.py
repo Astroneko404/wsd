@@ -7,6 +7,7 @@ import numpy as np
 import tqdm
 import random
 from collections import defaultdict
+from datetime import datetime
 from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV
 
@@ -181,6 +182,7 @@ def predict_svm(test_processed_path, train_processed_path):
             x = []
             y = []
             global_idx_list = []
+
             for global_instance_idx, _, _, _, content_vec, _, label in content_vector:
                 # if true label not in train collection
                 if label not in label2idx:
@@ -204,6 +206,7 @@ def predict_svm(test_processed_path, train_processed_path):
             # predict
             if len(y) > 0:
                 model = pickle_reader(train_processed_path + '/svm_models/%d_svm.pkl' % abbr2train_idx[abbr])
+
                 y_pred = model.predict(np.vstack(x))
 
                 # get idx2label
@@ -221,10 +224,13 @@ def predict_svm(test_processed_path, train_processed_path):
     # sort collection list based on global instance idx
     instance_collection = sorted(instance_collection, key=lambda x: x.index)
     return instance_collection
+    # return instance_collection, skip
 
 
 if __name__ == '__main__':
-    dataset_paths = DataSetPaths('luoz3_x1')
+    # dataset_paths = DataSetPaths('luoz3_x1')
+    dataset_paths = DataSetPaths('xil222')
+    start_time = datetime.now()
 
     #####################################
     # train
@@ -235,6 +241,11 @@ if __name__ == '__main__':
     # train_svm(dataset_paths.mimic_train_folder)
     # train_svm(dataset_paths.upmc_ab_train_folder)
     # train_svm(dataset_paths.upmc_ad_train_folder)
+    # train_svm(dataset_paths.upmc_al_train_folder)
+    # train_svm(dataset_paths.upmc_ao_train_folder)
+    # train_svm(dataset_paths.pe_self_train_folder)
+
+    train_svm(dataset_paths.mimic_clus_all_train_folder)
 
     # #####################################
     # # testing (directly compute score, not using standard pipeline)
@@ -256,8 +267,16 @@ if __name__ == '__main__':
     # msh_collector = AbbrInstanceCollector(dataset_paths.msh_txt)
     # umn_collector = AbbrInstanceCollector(dataset_paths.umn_txt)
     # upmc_example_collector = AbbrInstanceCollector(dataset_paths.upmc_example_txt)
-    upmc_ab_test_collector = AbbrInstanceCollector(dataset_paths.upmc_ab_test_txt)
+    # upmc_ab_test_collector = AbbrInstanceCollector(dataset_paths.upmc_ab_test_txt)
     # upmc_ad_test_collector = AbbrInstanceCollector(dataset_paths.upmc_ad_test_txt)
+    # upmc_ag_test_collector = AbbrInstanceCollector(dataset_paths.upmc_ag_test_txt)
+    # upmc_al_test_collector = AbbrInstanceCollector(dataset_paths.upmc_al_test_txt)
+    # upmc_ao_test_collector = AbbrInstanceCollector(dataset_paths.upmc_ao_test_txt)
+    # pe_test_collector = AbbrInstanceCollector(dataset_paths.pe_50000_nm_test_txt)
+    # pe_self_test_collector = AbbrInstanceCollector(dataset_paths.pe_self_test_txt)
+    # ipdc_test_collector = AbbrInstanceCollector(dataset_paths.ipdc_50000_test_txt)
+
+    mimic_test_collector = AbbrInstanceCollector(dataset_paths.mimic_clus_all_test_txt)
 
     # print("SVM on MIMIC test: ")
     # mimic_test_collection_true = mimic_test_collector.generate_instance_collection()
@@ -283,14 +302,73 @@ if __name__ == '__main__':
     # upmc_example_collection_true = upmc_example_collector.generate_instance_collection()
     # upmc_example_collection_pred = predict_svm(dataset_paths.upmc_example_folder, dataset_paths.mimic_train_folder)
     # print(evaluation(upmc_example_collection_true, upmc_example_collection_pred))
-    # save_instance_collection_to_json(upmc_example_collection_pred, dataset_paths.upmc_example_folder+"/upmc_svm_pred.json")
+    # save_instance_collection_to_json(upmc_example_collection_pred,
+    #                                  dataset_paths.upmc_example_folder + "/upmc_svm_pred.json")
 
-    print("SVM on UPMC AB test: ")
-    upmc_ab_test_collection_true = upmc_ab_test_collector.generate_instance_collection()
-    upmc_ab_test_collection_pred = predict_svm(dataset_paths.upmc_ab_test_folder, dataset_paths.upmc_ab_train_folder)
-    print(evaluation(upmc_ab_test_collection_true, upmc_ab_test_collection_pred))
+    # print("SVM on UPMC AB test: ")
+    # upmc_ab_test_collection_true = upmc_ab_test_collector.generate_instance_collection()
+    # upmc_ab_test_collection_pred = predict_svm(dataset_paths.upmc_ab_test_folder, dataset_paths.upmc_ab_train_folder)
+    # print(evaluation(upmc_ab_test_collection_true, upmc_ab_test_collection_pred))
 
     # print("SVM on UPMC AD test: ")
     # upmc_ad_test_collection_true = upmc_ad_test_collector.generate_instance_collection()
     # upmc_ad_test_collection_pred = predict_svm(dataset_paths.upmc_ad_test_folder, dataset_paths.upmc_ad_train_folder)
     # print(evaluation(upmc_ad_test_collection_true, upmc_ad_test_collection_pred))
+
+    # print("SVM on UPMC AG test: ")
+    # upmc_ag_test_collection_true = upmc_ag_test_collector.generate_instance_collection()
+    # upmc_ag_test_collection_pred = predict_svm(dataset_paths.upmc_ag_test_folder, dataset_paths.upmc_ag_train_folder)
+    # print(evaluation(upmc_ag_test_collection_true, upmc_ag_test_collection_pred))
+    # runtime = datetime.now() - start_time
+
+    # print("SVM on UPMC AL test: ")
+    # upmc_al_test_collection_true = upmc_al_test_collector.generate_instance_collection()
+    # upmc_al_test_collection_pred = predict_svm(dataset_paths.upmc_al_test_folder,
+    #                                            dataset_paths.upmc_al_train_folder)
+    # print(evaluation(upmc_al_test_collection_true, upmc_al_test_collection_pred))
+    # runtime = datetime.now() - start_time
+    # print('Finished in', runtime)
+
+    # print("SVM on UPMC AO test: ")
+    # upmc_al_test_collection_true = upmc_ao_test_collector.generate_instance_collection()
+    # upmc_al_test_collection_pred = predict_svm(dataset_paths.upmc_ao_test_folder,
+    #                                            dataset_paths.upmc_ao_train_folder)
+    # print(evaluation(upmc_al_test_collection_true, upmc_al_test_collection_pred))
+    # runtime = datetime.now() - start_time
+    # print('Finished in', runtime)
+    #
+    # print()
+
+    print("SVM on MIMIC test: ")
+    mimic_test_collection_true = mimic_test_collector.generate_instance_collection()
+    mimic_test_collection_pred = predict_svm(
+        dataset_paths.mimic_clus_all_test_folder,
+        dataset_paths.mimic_clus_all_train_folder)
+    print(evaluation(mimic_test_collection_true, mimic_test_collection_pred))
+    runtime = datetime.now() - start_time
+    print('Finished in', runtime)
+
+    print()
+
+    # print("SVM on Patient Education test: ")
+    # pe_test_collection_true = pe_test_collector.generate_instance_collection()
+    # pe_test_collection_pred = predict_svm(dataset_paths.pe_50000_nm_test_folder,
+    #                                       dataset_paths.upmc_al_train_folder)
+    # print(evaluation(pe_test_collection_true, pe_test_collection_pred))
+    # runtime = datetime.now() - start_time
+    # print('Finished in', runtime)
+
+    # print("SVM on Patient Education test: ")
+    # pe_self_test_collection_true = pe_self_test_collector.generate_instance_collection()
+    # pe_self_test_collection_pred = predict_svm(dataset_paths.pe_self_test_folder,
+    #                                            dataset_paths.pe_self_train_folder)
+    # print(evaluation(pe_self_test_collection_true, pe_self_test_collection_pred))
+    # runtime = datetime.now() - start_time
+    # print('Finished in', runtime)
+
+    # print("SVM on IPDC test: ")
+    # ipdc_test_collection_pred = predict_svm(dataset_paths.ipdc_50000_test_folder,
+    #                                         dataset_paths.upmc_al_train_folder)
+    # for i in range(len(ipdc_test_collector.generate_instance_collection())):
+    # ipdc_test_collection_true = ipdc_test_collector.generate_instance_collection()
+    # print(evaluation(ipdc_test_collection_true, ipdc_test_collection_pred))

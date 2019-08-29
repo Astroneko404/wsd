@@ -110,7 +110,7 @@ def generate_train_files(txt_path, train_processed_path):
     # Find abbrs, build abbr index
     print("Loading TRAIN data...")
     train_collector = AbbrInstanceCollector(txt_path)
-    abbr_index, train_no_mark = train_collector.generate_inverted_index()
+    abbr_index, train_no_mark, offset = train_collector.generate_inverted_index()
     # save files
     txt_writer(train_no_mark, train_processed_path + '/train_no_mark.txt')
     abbr_index.save(train_processed_path + '/abbr_index_data.pkl')
@@ -135,18 +135,21 @@ def generate_test_files(txt_path, test_processed_path):
     # Find abbrs, build abbr index
     print("Loading Test data...")
     test_collector = AbbrInstanceCollector(txt_path)
-    abbr_index, test_no_mark = test_collector.generate_inverted_index()
+    abbr_index, test_no_mark, offset = test_collector.generate_inverted_index()
     # save files
     txt_writer(test_no_mark, test_processed_path + '/test_no_mark.txt')
     abbr_index.save(test_processed_path + '/abbr_index_data.pkl')
 
 
 if __name__ == '__main__':
-    dataset_paths = DataSetPaths('luoz3_x1')
+    # dataset_paths = DataSetPaths('luoz3_x1')
+    dataset_paths = DataSetPaths('xil222')
 
     # generate_train_files(dataset_paths.mimic_train_txt, dataset_paths.mimic_train_folder)
     # generate_train_files(dataset_paths.upmc_ab_train_txt, dataset_paths.upmc_ab_train_folder)
-    generate_train_files(dataset_paths.upmc_ad_train_txt, dataset_paths.upmc_ad_train_folder)
+    # generate_train_files(dataset_paths.upmc_ad_train_txt, dataset_paths.upmc_ad_train_folder)
+    # generate_train_files(dataset_paths.upmc_al_train_txt, dataset_paths.upmc_al_train_folder)
+    # generate_train_files(dataset_paths.upmc_ao_train_txt, dataset_paths.upmc_ao_train_folder)
 
     # generate_test_files(dataset_paths.mimic_eval_txt, dataset_paths.mimic_test_folder)
     # generate_test_files(dataset_paths.msh_txt, dataset_paths.msh_test_folder)
@@ -154,4 +157,49 @@ if __name__ == '__main__':
     # generate_test_files(dataset_paths.umn_txt, dataset_paths.umn_test_folder)
     # generate_test_files(dataset_paths.upmc_example_txt, dataset_paths.upmc_example_folder)
     # generate_test_files(dataset_paths.upmc_ab_test_txt, dataset_paths.upmc_ab_test_folder)
-    generate_test_files(dataset_paths.upmc_ad_test_txt, dataset_paths.upmc_ad_test_folder)
+    # generate_test_files(dataset_paths.upmc_ad_test_txt, dataset_paths.upmc_ad_test_folder)
+    # generate_test_files(dataset_paths.upmc_al_test_txt, dataset_paths.upmc_al_test_folder)
+    # generate_test_files(dataset_paths.upmc_ao_test_txt, dataset_paths.upmc_ao_test_folder)
+    # generate_test_files(dataset_paths.pipeline_test_txt, dataset_paths.pipeline_test_folder)
+
+    ##############################
+    # Discharge notes
+    ##############################
+    # generate_train_files(dataset_paths.pe_self_train_txt, dataset_paths.pe_self_train_folder)
+
+    # generate_test_files(dataset_paths.pe_50000_nm_test_txt, dataset_paths.pe_50000_nm_test_folder)
+    # generate_test_files(dataset_paths.pe_self_test_txt,dataset_paths.pe_self_test_folder)
+    # generate_test_files(dataset_paths.ipdc_50000_test_txt, dataset_paths.ipdc_50000_test_folder)
+
+    ##############################
+    # MIMIC
+    ##############################
+    # generate_train_files(dataset_paths.mimic_new_train_txt, dataset_paths.mimic_new_train_folder)
+    # generate_train_files(dataset_paths.mimic_clus_k20_s5_train_txt, dataset_paths.mimic_clus_k20_s5_train_folder)
+    # generate_train_files(dataset_paths.mimic_clus_k20_s10_train_txt, dataset_paths.mimic_clus_k20_s10_train_folder)
+    # generate_train_files(dataset_paths.mimic_clus_k20_s15_train_txt, dataset_paths.mimic_clus_k20_s15_train_folder)
+    # generate_train_files(dataset_paths.mimic_clus_k30_s5_train_txt, dataset_paths.mimic_clus_k30_s5_train_folder)
+    # generate_train_files(dataset_paths.mimic_clus_k30_s10_train_txt, dataset_paths.mimic_clus_k30_s10_train_folder)
+    # generate_train_files(dataset_paths.mimic_clus_k30_s15_train_txt, dataset_paths.mimic_clus_k30_s15_train_folder)
+    # generate_train_files(dataset_paths.mimic_clus_k40_s5_train_txt, dataset_paths.mimic_clus_k40_s5_train_folder)
+    # generate_train_files(dataset_paths.mimic_clus_k40_s10_train_txt, dataset_paths.mimic_clus_k40_s10_train_folder)
+    # generate_train_files(dataset_paths.mimic_clus_k40_s15_train_txt, dataset_paths.mimic_clus_k40_s15_train_folder)
+    # generate_train_files(dataset_paths.mimic_clus_all_train_txt, dataset_paths.mimic_clus_all_train_folder)
+
+    # generate_train_files(dataset_paths.mimic_clus_k2_s10_train_txt, dataset_paths.mimic_clus_k2_s10_train_folder)
+    generate_train_files(dataset_paths.mimic_clus_k15_s10_train_txt, dataset_paths.mimic_clus_k15_s10_train_folder)
+
+    # generate_test_files(dataset_paths.mimic_new_test_txt, dataset_paths.mimic_new_test_folder)
+    # generate_test_files(dataset_paths.mimic_clus_k20_s5_test_txt, dataset_paths.mimic_clus_k20_s5_test_folder)
+    # generate_test_files(dataset_paths.mimic_clus_k20_s10_test_txt, dataset_paths.mimic_clus_k20_s10_test_folder)
+    # generate_test_files(dataset_paths.mimic_clus_k20_s15_test_txt, dataset_paths.mimic_clus_k20_s15_test_folder)
+    # generate_test_files(dataset_paths.mimic_clus_k30_s5_test_txt, dataset_paths.mimic_clus_k30_s5_test_folder)
+    # generate_test_files(dataset_paths.mimic_clus_k30_s10_test_txt, dataset_paths.mimic_clus_k30_s10_test_folder)
+    # generate_test_files(dataset_paths.mimic_clus_k30_s15_test_txt, dataset_paths.mimic_clus_k30_s15_test_folder)
+    # generate_test_files(dataset_paths.mimic_clus_k40_s5_test_txt, dataset_paths.mimic_clus_k40_s5_test_folder)
+    # generate_test_files(dataset_paths.mimic_clus_k40_s10_test_txt, dataset_paths.mimic_clus_k40_s10_test_folder)
+    # generate_test_files(dataset_paths.mimic_clus_k40_s15_test_txt, dataset_paths.mimic_clus_k40_s15_test_folder)
+    # generate_test_files(dataset_paths.mimic_clus_all_test_txt, dataset_paths.mimic_clus_all_test_folder)
+
+    # generate_test_files(dataset_paths.mimic_clus_k2_s10_test_txt, dataset_paths.mimic_clus_k2_s10_test_folder)
+    generate_test_files(dataset_paths.mimic_clus_k15_s10_test_txt, dataset_paths.mimic_clus_k15_s10_test_folder)

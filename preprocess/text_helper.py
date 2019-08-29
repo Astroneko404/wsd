@@ -11,7 +11,7 @@ import tqdm
 import operator
 import multiprocessing as mp
 from joblib import Parallel, delayed
-from pycorenlp import StanfordCoreNLP
+# from pycorenlp import StanfordCoreNLP
 from util import constant
 from baseline.dataset_helper import process_abbr_token
 
@@ -74,31 +74,60 @@ class TextTokenFilter(object):
         self.remove_digit = remove_digit
         self.remove_repeat = remove_repeat
 
-    def __call__(self, txt):
+    # def __call__(self, txt):
+    #     # To lowercase
+    #     if self.lowercase:
+    #         txt = txt.lower()
+    #
+    #     # Split to tokens
+    #     tokens = txt.split(" ")
+    #
+    #     # Remove digit to constant.NUM
+    #     if self.remove_digit:
+    #         tokens = [w if not re.fullmatch(r'\d+(\D\d+)?', w) else constant.NUM for w in tokens]
+    #
+    #     # Remove non-asc2 word
+    #     if self.remove_non_ascii:
+    #         tokens = [w for w in tokens if TokenHelper.is_ascii(w)]
+    #
+    #     # Remove repeatly non-words, e.g. num num into num
+    #     if self.remove_repeat:
+    #         ntokens = []
+    #         for token_id, token in enumerate(tokens):
+    #             if token.isalpha() or process_abbr_token(token) or token_id == 0 or tokens[token_id-1] != token:
+    #                 ntokens.append(token)
+    #         return " ".join(ntokens)
+    #     else:
+    #         return " ".join(tokens)
+
+    def __call__(self, txt_tuple):
         # To lowercase
         if self.lowercase:
-            txt = txt.lower()
-
-        # Split to tokens
-        tokens = txt.split(" ")
+            for item in txt_tuple:
+                item[0] = item[0].lower()
 
         # Remove digit to constant.NUM
         if self.remove_digit:
-            tokens = [w if not re.fullmatch(r'\d+(\D\d+)?', w) else constant.NUM for w in tokens]
+            for item in txt_tuple:
+                if re.fullmatch(r'\d+(\D\d+)?', item[0]):
+                    item[0] = constant.NUM
 
         # Remove non-asc2 word
         if self.remove_non_ascii:
-            tokens = [w for w in tokens if TokenHelper.is_ascii(w)]
+            txt_tuple = [item for item in txt_tuple if TokenHelper.is_ascii(item[0])]
 
-        # Remove repeatly non-words, e.g. num num into num
+        # Remove repeated non-words, e.g. num num into num
         if self.remove_repeat:
             ntokens = []
-            for token_id, token in enumerate(tokens):
-                if token.isalpha() or process_abbr_token(token) or token_id == 0 or tokens[token_id-1] != token:
+            for token_id, token in enumerate(txt_tuple):
+                if token[0].isalpha() or process_abbr_token(token[0]) \
+                        or token_id == 0 or txt_tuple[token_id-1][0] != token[0]:
                     ntokens.append(token)
-            return " ".join(ntokens)
+            # print('TextTokenFilter finished')
+            return ntokens
         else:
-            return " ".join(tokens)
+            # print('TextTokenFilter finished')
+            return txt_tuple
 
 
 class TextBaseHelper(object):
@@ -141,9 +170,29 @@ class TextProcessor(TextBaseHelper):
             txt = func(txt)
         return txt
 
+    # def process_single_text_mp(self, txt):
+    #     txt_list = txt.split(']')
+    #     txt_list_processed = Parallel(n_jobs=len(txt_list), verbose=1)(
+    #         delayed(self.process_single_text(sub_txt) for sub_txt in txt_list)
+    #     )
+    #     result = ''.join(txt_list_processed)
+    #     return result
+    #
+    # def process_text_session(self, sub_txt_list):
+    #     # not nested mp
+    #     sub_list_processed = []
+    #     for txt in sub_txt_list:
+    #         sub_list_processed.append(self.process_single_text(txt))
+    #     return sub_list_processed
+
     def process_texts(self, txt_list, n_jobs=8):
         print("Processing texts (n_jobs = %d)..." % n_jobs)
-        txt_list_processed = Parallel(n_jobs=n_jobs, verbose=1)(delayed(self.process_single_text)(txt) for txt in txt_list)
+        txt_list_processed = Parallel(n_jobs=n_jobs, verbose=1)(
+            delayed(self.process_single_text)(txt) for txt in txt_list)
+        # txt_list_chunked = self.chunk(txt_list, n_jobs)
+        # txt_list_processed = Parallel(n_jobs=n_jobs, verbose=1)(
+        #     delayed(self.process_text_session)(sub_list) for sub_list in txt_list_chunked
+        # )
         return txt_list_processed
 
 
@@ -164,7 +213,7 @@ class CoreNLPTokenizer(TextBaseHelper):
         :param server_port: The port of CoreNLP Java Server
         :param combine_splitter: A marker string to split multiple texts
         """
-        self.stanford_nlp = StanfordCoreNLP('http://localhost:%d' % server_port)
+        # self.stanford_nlp = StanfordCoreNLP('http://localhost:%d' % server_port)
         self.combine_splitter = combine_splitter
 
     def process_single_text(self, txt):
@@ -196,10 +245,14 @@ class CoreNLPTokenizer(TextBaseHelper):
         q = mp.Queue()
         # how many docs per worker
         step = len(txt_list_combined) // n_jobs
-        workers = [mp.Process(target=self._job, args=(range(i * step, (i + 1) * step), txt_list_combined[i * step:(i + 1) * step], q))
+        workers = [mp.Process(
+            target=self._job,
+            args=(range(i * step, (i + 1) * step), txt_list_combined[i * step:(i + 1) * step], q))
                    for i in range(n_jobs - 1)]
-        workers.append(mp.Process(target=self._job, args=(
-            range((n_jobs - 1) * step, len(txt_list_combined)), txt_list_combined[(n_jobs - 1) * step:], q)))
+        workers.append(mp.Process(
+            target=self._job,
+            args=(range((n_jobs - 1) * step, len(txt_list_combined)), txt_list_combined[(n_jobs - 1) * step:], q))
+        )
 
         with tqdm.tqdm(total=len(txt_list_combined)) as pbar:
             for i in range(n_jobs):
@@ -328,27 +381,49 @@ def white_space_remover(txt):
     return txt
 
 
-def repeat_non_word_remover(txt):
-    txt = re.sub(r'([\W_])\1+', r'\1', txt)
-    return txt
+# def repeat_non_word_remover(txt):
+#     txt = re.sub(r'([\W_])\1+', r'\1', txt)
+#     return txt
+
+def repeat_non_word_remover(txt_tuple):
+    for txt in txt_tuple:
+        txt[0] = re.sub(r'([\W_])\1+', r'\1', txt[0])
+    # print('repeat_non_word_remover finished')
+    return txt_tuple
 
 
-def recover_upper_cui(txt):
+# def recover_upper_cui(txt):
+#     """
+#     Recover all lowercase CUI to uppercase.
+#
+#     :param txt:
+#     :return:
+#     """
+#     def upper_cui(m):
+#         part1 = m.group(1)
+#         part2 = m.group(2)
+#         return "".join([part1, part2.upper()])
+#
+#     # abbr annotation pattern (senses must be represented by CUI or digits, can be list of CUIs separated by ;)
+#     annotate_ptn = re.compile(r"(abbr\|[\w\-/'.]+?\|)([c\d;]+)")
+#     txt = re.sub(annotate_ptn, upper_cui, txt)
+#     return txt
+
+def recover_upper_cui(txt_tuple):
     """
     Recover all lowercase CUI to uppercase.
-
-    :param txt:
-    :return:
     """
     def upper_cui(m):
         part1 = m.group(1)
         part2 = m.group(2)
-        return "".join([part1, part2.upper()])
+        return "".join([part1.upper(), part2.upper()])
 
     # abbr annotation pattern (senses must be represented by CUI or digits, can be list of CUIs separated by ;)
     annotate_ptn = re.compile(r"(abbr\|[\w\-/'.]+?\|)([c\d;]+)")
-    txt = re.sub(annotate_ptn, upper_cui, txt)
-    return txt
+    for txt in txt_tuple:
+        txt[0] = re.sub(annotate_ptn, upper_cui, txt[0])
+    # print('recover_upper_cui finished')
+    return txt_tuple
 
 
 def is_valid_abbr(abbr):

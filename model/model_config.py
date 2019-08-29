@@ -135,6 +135,10 @@ def get_path(file_path, env='sys'):
         return '/exp_data/wsd_data/' + file_path
     elif env == 'luoz3_x1':
         return '/home/luoz3/wsd/' + file_path
+    elif env == 'xil222':
+        return '/home/luoz3/wsd_clone/' + file_path
+    elif env == 'docker':
+        return '' + file_path
     else:
         return os.path.dirname(os.path.abspath(__file__)) + '/../' + file_path
 
