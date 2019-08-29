@@ -209,10 +209,11 @@ def fasttext_classifier(model, pred_abbr_index, pred_abbr_instances, global_char
         for doc_id, pos_list in pred_abbr_index[abbr].items():
             for global_instance_idx, _, _ in pos_list:
                 # get instance
+                k = 5
                 context = eval_abbr_instance_list[abbr_instance_idx]
-                sense = model.predict(context, k=5)
+                sense = model.predict(context, k=k)
                 sense_list = []
-                for i in range(5):
+                for i in range(min(k, len(sense[0]))):
                     tup = [sense[0][i].lstrip("__label__"), sense[1][i]]
                     sense_list.append(tup)
 
@@ -476,13 +477,7 @@ if __name__ == '__main__':
         use_pretrain=False,
         use_softmax=False)
 
-    # wsd = AbbrDisambiguation(
-    #     train_processed_path=dataset_paths.upmc_al_train_folder,
-    #     abbr_inventory_path=abbr_inventory_path,
-    #     use_pretrain=False,
-    #     use_softmax=True)
-
-    result = wsd.process_single_text(example_note, save_json_path=dataset_processed_path+"/wsd_result.json")
+    result = wsd.process_single_text(example_note_2, save_json_path=dataset_processed_path+"/wsd_result.json")
     # result2 = wsd.process_texts(dataset_text, save_json_path=dataset_processed_path+"/wsd_result.json")
 
     print()
