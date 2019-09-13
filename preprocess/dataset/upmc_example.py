@@ -204,8 +204,8 @@ if __name__ == '__main__':
     #                        train_ratio=0)
 
     process_annotated_data(
-        "/home/wangz12/scripts/generate_trainning_data/training_data_MIMIC_core_cluster_only_k15_s10.txt",
-        data_path + "/mimic_cluster_k15_s10/processed"
+        "/home/wangz12/scripts/generate_trainning_data/training_data_all.txt",
+        data_path + "/training_all/processed"
     )
 
     # process_annotated_data(
